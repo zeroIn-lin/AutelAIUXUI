@@ -316,7 +316,6 @@
     schedule();
   }
   function openDevice(d) {
-    selectPlot(d.plot,{reveal:true});
     window.openFarmDevice(d.type,d.plot.name);
   }
   for (const plot of plots) {
