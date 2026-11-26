@@ -2,16 +2,20 @@ const viewer = document.createElement('dialog');
 viewer.className = 'machine-viewer';
 viewer.setAttribute('aria-label','水肥机操控');
 viewer.innerHTML = `<header><strong>水肥机操控</strong><button type="button">返回灌区</button></header>
-<div class="machine-layout"><div class="machine-stage" aria-label="智慧水肥一体机三维模型" role="img">
-<div class="cabinet"><div class="cabinet-side"></div><div class="cabinet-top"></div><div class="cabinet-face">
-<div class="cabinet-window"><i></i></div><div class="cabinet-door"><b>智慧水肥一体机</b><strong>数联耘</strong></div></div></div></div>
+<div class="machine-layout"><div class="machine-stage" aria-label="疆润智慧水肥一体机，右前方半侧视图" role="img">
+<div class="machine-product"><canvas class="machine-canvas" aria-hidden="true"></canvas>
+<img class="machine-preview" src="./device-icons/jiangrun.png" loading="lazy" alt=""></div></div>
 <section class="machine-display"><iframe title="水肥机本地操控屏"></iframe></section></div>`;
 document.body.append(viewer);
+const cabinetCanvas = viewer.querySelector('.machine-canvas');
+let cabinetModel;
 function enterMachine() {
   if (viewer.open) return;
   const panel = viewer.querySelector('iframe');
   if (!panel.hasAttribute('src')) panel.src = './machine-demo/index.html';
   viewer.showModal();
+  if (cabinetModel) cabinetModel.resize();
+  else cabinetModel = window.farmScene?.mountMachineModel?.(cabinetCanvas);
 }
 
 viewer.querySelector('button').addEventListener('click', () => viewer.close());
