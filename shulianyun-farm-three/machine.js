@@ -1,8 +1,3 @@
-const sceneHost = document.querySelector('#scene');
-const card = document.createElement('details');
-card.className = 'machine-entry';
-card.innerHTML = '<summary>水肥机</summary><button type="button">进入水肥机</button>';
-sceneHost.append(card);
 const viewer = document.createElement('dialog');
 viewer.className = 'machine-viewer';
 viewer.setAttribute('aria-label','水肥机操控');
@@ -18,8 +13,24 @@ function enterMachine() {
   if (!panel.hasAttribute('src')) panel.src = './machine-demo/index.html';
   viewer.showModal();
 }
-card.querySelector('button').addEventListener('click', enterMachine);
+
 viewer.querySelector('button').addEventListener('click', () => viewer.close());
 document.addEventListener('click', event => {
   if (event.target.closest('[data-action="enter-machine"]')) enterMachine();
 });
+const markerSelector = '#scene[data-pipe-view="true"] button.device-name-label[data-id="fertigation-1"]';
+document.addEventListener('click', event => {
+  if (!event.target.closest(markerSelector)) return;
+  event.stopPropagation();
+  enterMachine();
+}, true);
+
+function labelMarker() {
+  const button = document.querySelector('.device-name-label[data-id="fertigation-1"]');
+  if (!button) return;
+  const active = document.querySelector('#scene').dataset.pipeView === 'true';
+  button.setAttribute('aria-label', active ? '进入水肥机' : '查看水肥一体机');
+  button.title = active ? '' : '查看水肥一体机';
+}
+new MutationObserver(labelMarker).observe(document.querySelector('#scene'), {attributes:true,attributeFilter:['data-pipe-view']});
+labelMarker();

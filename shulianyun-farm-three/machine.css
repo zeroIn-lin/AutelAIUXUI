@@ -1,5 +1,4 @@
-.machine-entry{display:none;position:absolute;z-index:13;left:20px;top:86px;padding:10px 16px;border:1px solid #c7d8d3;border-radius:10px;background:white;color:#284c45;box-shadow:0 4px 18px #163c301a}
-#scene[data-pipe-view=true] .machine-entry{display:block}.machine-entry summary{cursor:pointer;font-weight:650}.machine-entry button,.machine-viewer button{cursor:pointer;padding:8px 14px;border-radius:6px;background:#ecf5ef;border:1px solid #b7d4c3;color:#285a44}.machine-entry button{margin-top:8px}
+.machine-viewer button{cursor:pointer;padding:8px 14px;border-radius:6px;background:#ecf5ef;border:1px solid #b7d4c3;color:#285a44}
 dialog.machine-viewer{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;max-height:none;box-sizing:border-box;margin:0;padding:0;border:0;background:#edf2f0;color:#234138}
 .machine-viewer header{height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;background:white}
 .machine-layout{height:calc(100% - 62px);display:grid;grid-template-columns:minmax(200px,23%) 1fr;align-items:center;padding:2vw;gap:2vw;box-sizing:border-box}
@@ -11,3 +10,5 @@ dialog.machine-viewer{position:fixed;inset:0;width:100vw;height:100dvh;max-width
 .machine-display{border:8px solid #38433f;border-radius:12px;background:white;overflow:hidden;box-shadow:0 12px 32px #203d3026}.machine-display iframe{display:block;width:100%;aspect-ratio:16/9;border:0}
 @media(max-width:720px){.machine-layout{grid-template-columns:1fr;grid-template-rows:minmax(100px,1fr) auto}.cabinet{width:min(10vh,88px)}}
 @media(prefers-reduced-motion:reduce){.machine-viewer[open] .cabinet{animation:none}}
+#scene[data-pipe-view=true] .device-name-label:is(:hover,:focus-visible) span:nth-child(2){font-size:0}
+#scene[data-pipe-view=true] .device-name-label:is(:hover,:focus-visible) span:nth-child(2)::after{content:"进入水肥机";font-size:14px;color:#246a57}
