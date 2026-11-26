@@ -41,10 +41,19 @@
   try { key=localStorage.getItem(storeKey)||''; } catch {}
   let preview=null;
   const previewSpec=window.farmMapPreview;
-  if (previewSpec) {
-    const image=new Image();
-    image.onload=()=>{preview=image;render();};
-    image.src=previewSpec.image;
+  // The bounds correspond to the complete north-up Web Mercator export.
+  const previewBounds = previewSpec && {
+    nw: project(previewSpec.west, previewSpec.north),
+    se: project(previewSpec.east, previewSpec.south)
+  };
+  if (previewBounds) {
+    const image = new Image();
+    image.onload = () => {
+      preview = image;
+      document.getElementById('schematic').textContent = '使用影像快照';
+      schedule();
+    };
+    image.src = previewSpec.image;
   }
   function resolution(){return circumference/(256*2**zoom);}
   function screenPoint([x,y]) {
@@ -66,33 +75,14 @@
     ctx.clearRect(0,0,view.clientWidth,view.clientHeight);
     return ctx;
   }
-  // Schematic land cover is explicitly labelled whenever service imagery is unavailable.
-  function drawLand(ctx) {
-    const w=view.clientWidth,h=view.clientHeight;
-    ctx.fillStyle='#dfe3cb';ctx.fillRect(0,0,w,h);
-    ctx.save();
-    const origin=screenLocal([0,0]);
-    const px=scaleMetres*metreFactor/resolution();
-    ctx.translate(...origin);ctx.scale(px,px);ctx.rotate(-0.17);
-    const radius=Math.min(12000,(Math.hypot(w,h)+Math.hypot(origin[0]-w/2,origin[1]-h/2))/px);
-    const shades=['#cbd5b6','#d0d5b6','#c3cdac','#d6d8bc','#bdcbaa','#d8d6b6','#c1ceb2'];
-    const xCount=Math.ceil(radius/215)+1,yCount=Math.ceil(radius/105)+1;
-    for (let row=-yCount;row<=yCount;row++) {
-      const offset=((row%3)+3)%3*51;
-      for(let col=-xCount;col<=xCount;col++){
-        const x=col*215+offset,y=row*105;
-        const select=((row*5+col*3)%shades.length+shades.length)%shades.length;
-        ctx.fillStyle=shades[select];ctx.fillRect(x+2,y+2,211,101);
-        if(px>.16){
-          ctx.fillStyle='#73895e17';
-          for(let line=6;line<100;line+=5)ctx.fillRect(x+3,y+line,209,1.3);
-        }
-      }
-    }
-    ctx.strokeStyle='#c4bca0';ctx.lineWidth=13;ctx.beginPath();ctx.moveTo(-radius,-185);ctx.lineTo(radius,-185);ctx.stroke();
-    ctx.strokeStyle='#ede7ce';ctx.lineWidth=8;ctx.stroke();
-    ctx.strokeStyle='#b1c5bd';ctx.lineWidth=11;ctx.beginPath();ctx.moveTo(420,-radius);ctx.lineTo(410,-210);ctx.lineTo(350,100);ctx.lineTo(370,radius);ctx.stroke();
-    ctx.restore();
+  function drawPreview(ctx) {
+    // Outside the imagery footprint, keep an untextured no-data background.
+    ctx.fillStyle = '#dde3df';
+    ctx.fillRect(0, 0, view.clientWidth, view.clientHeight);
+    if (!preview) return;
+    const [left, top] = screenPoint(previewBounds.nw);
+    const [right, bottom] = screenPoint(previewBounds.se);
+    ctx.drawImage(preview, left, top, right-left, bottom-top);
   }
   const landBands=['#668659','#adac50','#8e9876','#7fa24e','#a39452','#91a65b'];
   function drawParcel(ctx,imagery) {
@@ -147,17 +137,25 @@
       }
     }
     for(const [id,tile] of activeTiles)if(!needed.has(id)){tile.onload=null;tile.onerror=null;tile.remove();activeTiles.delete(id);}
-    return [...activeTiles.entries()].some(([id,t])=>id.startsWith('img/')&&t.complete&&t.naturalWidth>0);
+    // Show a single attributed source during loading and panning.
+    const imagery = [...activeTiles.entries()].filter(([id]) => id.startsWith('img/'));
+    const ready = imagery.length > 0 && imagery.every(([,img]) => img.complete && img.naturalWidth > 0);
+    tiles.style.visibility = ready ? 'visible' : 'hidden';
+    return ready;
   }
   function render(){
     if (!view.clientWidth||!view.clientHeight)return;
-    const ctx=canvasContext(terrain);drawLand(ctx);
-    if(preview){const [l,t]=screenPoint(project(previewSpec.west,previewSpec.north));const [r,b]=screenPoint(project(previewSpec.east,previewSpec.south));ctx.drawImage(preview,l,t,r-l,b-t);}
-    const live=drawTiles();
-    sourceLabel.textContent=live?'天地图影像':preview?'天地图影像快照':key&&!tileFailure?'影像加载中':'地块示意图';
-    credit.hidden=!live&&!preview;
-    if(preview&&!live)credit.textContent=previewSpec.credit||'天地图';
-    if(live)credit.textContent='天地图 · 国家地理信息公共服务平台';
+    constrain();
+    drawPreview(canvasContext(terrain));
+    const live = drawTiles();
+    sourceLabel.textContent = live ? '天地图影像' : preview ? previewSpec.label || '卫星影像快照' : '地块示意图';
+    credit.hidden = !live && !(preview && previewSpec.credit);
+    if (!credit.hidden) {
+      credit.textContent = live ? '天地图 · 国家地理信息公共服务平台' : previewSpec.credit;
+      const url = live ? 'https://www.tianditu.gov.cn/' : previewSpec.creditUrl;
+      if (url) credit.href = url;
+      else credit.removeAttribute('href');
+    }
     drawParcel(canvasContext(overlay),live||!!preview);
     devices.forEach(d=>{const [x,y]=screenLocal(d.point);d.pin.style.left=x+'px';d.pin.style.top=y+'px';});
     const max=Math.max(1,90*resolution()/metreFactor);
@@ -182,7 +180,22 @@
     interactive=true;const old=resolution();zoom=Math.max(homeZoom-1.25,Math.min(homeZoom+2.5,zoom+delta));
     center[0]+=(old-resolution())*(x-view.clientWidth/2);center[1]+=(old-resolution())*(y-view.clientHeight/2);constrain();schedule();
   }
-  function constrain(){const range=1500*metreFactor;center=center.map((c,i)=>Math.max(home[i]-range,Math.min(home[i]+range,c)));}
+  function constrain() {
+    const range = 1500 * metreFactor;
+    if (!preview || (key && !tileFailure)) {
+      center = center.map((value,i) => Math.max(home[i]-range, Math.min(home[i]+range, value)));
+      return;
+    }
+    // Never pan past the snapshot. If the viewport is larger, center the image
+    // on that axis and leave the uncovered edges visibly outside the map.
+    const size = [view.clientWidth, view.clientHeight];
+    center = center.map((value, i) => {
+      const halfViewport = size[i] * resolution() / 2;
+      const min = previewBounds.nw[i] + halfViewport;
+      const max = previewBounds.se[i] - halfViewport;
+      return min <= max ? Math.max(min, Math.min(max, value)) : (min + max) / 2;
+    });
+  }
   view.addEventListener('wheel',e=>{e.preventDefault();const r=view.getBoundingClientRect();changeZoom(e.deltaY>0?-.25:.25,e.clientX-r.left,e.clientY-r.top);},{passive:false});
   let drag;
   view.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button'))return;view.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY,c:[...center]};});
