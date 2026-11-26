@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="land" x2=".75" y2="1" gradientUnits="objectBoundingBox"><stop stop-color="#7e9e71"/><stop offset="1" stop-color="#163f2d"/></linearGradient>
+    <pattern id="rows" width="44" height="44" patternUnits="userSpaceOnUse"><path d="M0 10h44M0 19h44" stroke="#b5ca83" opacity=".32" stroke-width="4"/></pattern>
+  </defs>
+  <rect width="1600" height="900" fill="url(#land)"/>
+  <path d="M0 410Q400 530 900 330T1600 280V900H0Z" fill="#41724a"/>
+  <path d="M0 590Q360 440 780 610T1600 470V900H0Z" fill="#568354"/>
+  <path d="M0 590Q360 440 780 610T1600 470V900H0Z" fill="url(#rows)" transform="matrix(1 .08 0 1 0 -40)"/>
+  <path d="M0 825Q270 710 550 820T1110 755T1600 705V900H0Z" fill="#1d4d38"/>
+</svg>

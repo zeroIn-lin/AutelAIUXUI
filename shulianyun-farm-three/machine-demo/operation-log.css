@@ -1,0 +1,113 @@
+.operation-page {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 0;
+  padding: 24px;
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-line);
+  border-radius: 24px;
+}
+.operation-heading, .operation-tools { display: flex; align-items: center; gap: 12px; }
+.operation-heading { justify-content: space-between; }
+.operation-heading h2 { margin: 0; font-size: 29px; }
+#screen .operation-tools button { --button-height: 44px; padding-inline: 20px; font-size: 20px; }
+.operation-table-wrap {
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--ui-line);
+  border-radius: 14px;
+}
+.operation-table { width: 100%; border-collapse: separate; border-spacing: 0; color: var(--ui-text); font-size: 21px; text-align: left; }
+.operation-table-wrap .operation-table { min-width: 1450px; }
+.operation-table :is(th, td) { padding: 10px 16px; border-bottom: 1px solid var(--ui-line); white-space: nowrap; }
+.operation-table th { position: sticky; top: 0; z-index: 1; height: 54px; background: var(--ui-raised); color: var(--ui-secondary); font-weight: 650; }
+.operation-table td { height: 55px; }
+.operation-table tbody tr:last-child td { border-bottom: 0; }
+.operation-table tr[data-action] { cursor: pointer; }
+.operation-table tr[data-action]:hover { background: var(--ui-raised); }
+.operation-table td.operation-empty { height: 144px; text-align: center; color: var(--ui-secondary); }
+#screen .operation-table .operation-view {
+  --button-height: 40px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding-inline: 6px;
+  color: var(--ui-accent-text);
+  font-size: 20px;
+}
+#screen .operation-table .operation-view:hover { text-decoration: underline; }
+.operation-result { display: inline-block; min-width: 64px; padding: 3px 10px; border-radius: 8px; text-align: center; font-size: 19px; font-weight: 650; }
+.operation-result.is-success { background: var(--ui-accent-soft); color: var(--ui-accent-text); }
+.operation-result.is-failed { color: #a82626; background: #fdeded; }
+:root[data-theme="dark"] .operation-result.is-failed { color: #ffc5c0; background: #4f2729; }
+.operation-filter-form { display: grid; gap: 26px; font-size: 20px; }
+.operation-filter-form fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.operation-filter-form legend { padding: 0 0 11px; font-weight: 650; }
+#screen .dialog:has(.operation-filter-form) .actions { margin-top: 22px; gap: 18px; }
+.operation-date-range { display: flex; align-items: end; gap: 16px; }
+.operation-date-range > span { align-self: end; padding-bottom: 8px; }
+.operation-date-field { position: relative; flex: 1; min-width: 0; display: grid; gap: 8px; color: var(--ui-secondary); font-size: 18px; }
+#screen .operation-date-field .operation-date-trigger {
+  --button-height: 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding-inline: 12px;
+  color: var(--ui-text);
+  background: var(--ui-field);
+  border: 1px solid var(--ui-line);
+  border-radius: 8px;
+  box-shadow: none;
+  font-size: 20px;
+}
+#screen .operation-date-field .operation-date-trigger:is(:focus-visible,[aria-expanded="true"]) { border-color: #62bb51; outline: 1px solid #62bb51; }
+.operation-calendar {
+  position: absolute;
+  z-index: 5;
+  inset: calc(100% + 6px) auto auto 0;
+  width: 334px;
+  padding: 12px;
+  color: var(--ui-text);
+  background: var(--ui-surface);
+  border: 1px solid var(--ui-line);
+  border-radius: 12px;
+  box-shadow: 0 10px 28px #00000026;
+}
+[data-operation-date="end"] .operation-calendar { inset-inline: auto 0; }
+.operation-calendar-header, .operation-calendar-footer { display: flex; align-items: center; justify-content: space-between; }
+.operation-calendar-header > div { display: flex; gap: 4px; }
+.operation-calendar-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 2px; margin-block: 6px; text-align: center; }
+.operation-calendar-grid > span { padding-block: 5px; color: var(--ui-secondary); font-size: 16px; }
+#screen .operation-calendar button {
+  --button-height: 34px;
+  padding-inline: 6px;
+  color: var(--ui-text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  box-shadow: none;
+  font-size: 18px;
+}
+#screen .operation-calendar button:hover { background: var(--ui-raised); }
+#screen .operation-calendar button:focus-visible { outline: 1px solid #62bb51; outline-offset: -2px; }
+#screen .operation-calendar .operation-month { display: grid; place-items: center; }
+#screen .operation-calendar [data-month-step="1"] svg { transform: rotate(180deg); }
+#screen .operation-calendar .operation-calendar-day.is-adjacent { color: var(--ui-secondary); }
+#screen .operation-calendar .operation-calendar-day[aria-current="date"] { border-color: var(--ui-line); }
+#screen .operation-calendar .operation-calendar-day[aria-pressed="true"] { background: var(--ui-accent-soft); color: var(--ui-accent-text); border-color: #62bb51; }
+#screen .operation-calendar-footer button { color: var(--ui-accent-text); }
+.operation-filter-options { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.operation-filter-options label { display: flex; align-items: center; gap: 7px; min-height: 40px; padding-inline: 8px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; white-space: nowrap; }
+.operation-filter-options label:has(input:checked) { background: transparent; border-color: #62bb51; color: var(--ui-accent-text); }
+.operation-filter-options input { width: 18px; height: 18px; margin: 0; accent-color: var(--ui-accent-text); }
+.operation-filter-error, .operation-reason { color: #a82626; }
+:root[data-theme="dark"] :is(.operation-filter-error,.operation-reason) { color: #ffc5c0; }
+.operation-filter-error:empty { display: none; }
+.operation-facts { margin: 0; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px 20px; font-size: 20px; }
+.operation-facts > div { display: grid; gap: 4px; padding: 9px 0; border-bottom: 1px solid var(--ui-line); }
+.operation-facts dt { color: var(--ui-secondary); font-size: 18px; }
+.operation-facts dd { margin: 0; }
+.operation-step-table { font-size: 19px; }
