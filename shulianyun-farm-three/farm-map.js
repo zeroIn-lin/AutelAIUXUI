@@ -331,7 +331,7 @@
     const pin=document.createElement('button');pin.className='device-pin';pin.type='button';
     pin.setAttribute('aria-label','查看'+d.name+'，'+d.label+'，'+d.plot.name);
     pin.dataset.plotId=d.plot.id;
-    const icon=new Image();icon.src='device-icons/'+d.type+'.png';icon.alt='';icon.draggable=false;
+    const icon=new Image();icon.src='device-icons/'+d.type+'-map.webp';icon.alt='';icon.draggable=false;
     const label=document.createElement('span');label.textContent=d.label;pin.append(icon,label);
     pin.addEventListener('click',()=>openDevice(d));markers.append(pin);d.pin=pin;
     const row=document.createElement('button');row.type='button';row.className='device-row';

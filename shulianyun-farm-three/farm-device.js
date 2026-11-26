@@ -101,7 +101,7 @@
     if (device.version) identity.push(['主板软件版本号', device.version]);
     dialog.innerHTML = `<div class="fd-sheet">
       <header class="fd-head">
-        <div class="fd-device-image"><img alt="" src="device-icons/${type}.png"></div>
+        <div class="fd-device-image"><img alt="" src="device-icons/${type}-map.webp"></div>
         <div class="fd-heading"><div class="fd-headline"><h2 id="fd-name">${device.name}</h2>${reading(device.status)}</div>
           <p class="fd-model">${device.model}</p><p class="fd-report">上报时间 <time datetime="2026-11-17T15:11:24+08:00">${lastReport}</time></p></div>
         <button type="button" class="fd-close" aria-label="关闭设备详情" autofocus>×</button>
