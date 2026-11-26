@@ -25,29 +25,54 @@
   const layout = window.FarmMapPlots;
   const home = layout.project([0.5,0.5],footprint);
   const context = window.FarmSceneContext.read();
+  const hasMapGeometry = context.hasScene !== false;
   const sourcePlots = new Map(context.plots.map(plot => [plot.id,plot]));
-  const plots = layout.plots.map(shape => {
+  const plots = hasMapGeometry ? layout.plots.map(shape => {
     const plot = {...shape,...sourcePlots.get(shape.id)};
     const zone = context.zones.find(zone => zone.plotIds.includes(plot.id));
     return {...plot,zoneName:zone?.name || shape.zoneName,
       boundary:shape.polygon.map(point => layout.project(point,footprint)),
       anchor:layout.project(shape.center,footprint)};
-  });
-  const plotsById = new Map(plots.map(plot => [plot.id,plot]));
-  const devices = [
+  }) : context.plots;
+  const plotsById = new Map(plots.map(plot => [String(plot.id),plot]));
+  const devices = hasMapGeometry ? [
     {type:'jiangrun',label:'疆润水肥机',name:'龙岗葡萄园测试水肥机',online:true},
     {type:'venturi',label:'文丘里施肥机',name:'河南xxx水肥机',online:true},
     {type:'injection',label:'注入式施肥机',name:'新疆xxx水肥机',online:false},
     {type:'valve',label:'阀控器',name:'5-2',online:true}
   ].map(device => {
     const {plotId,point} = layout.devices.find(item => item.type === device.type);
-    return {...device,plot:plotsById.get(plotId),anchor:layout.project(point,footprint)};
+    return {...device,plot:plotsById.get(String(plotId)),anchor:layout.project(point,footprint)};
+  }) : [];
+  document.addEventListener('farm:shared-context-change', () => {
+    const next = new URL(location.href);
+    next.searchParams.delete('plot');
+    location.replace(next.href);
   });
-  document.getElementById('map-farm-name').textContent = context.farmName;
-  document.getElementById('map-season-name').textContent = context.seasonName;
   const mapShell = view.closest('.map-shell');
   const labelLayer = document.getElementById('plot-label-layer');
-  const plotList = document.getElementById('plot-list');
+  const plotFilter = document.getElementById('plot-filter');
+  const inventoryToggle = document.getElementById('fm-inventory-toggle');
+  function setInventoryOpen(open) {
+    inventoryToggle.setAttribute('aria-expanded',String(open));
+    mapShell.closest('.map-layout').classList.toggle('inventory-open',open);
+  }
+  inventoryToggle.addEventListener('click',()=>{
+    const open = inventoryToggle.getAttribute('aria-expanded') !== 'true';
+    setInventoryOpen(open);
+    if (open) plotFilter.focus({preventScroll:true});
+  });
+  document.getElementById('fm-inventory').addEventListener('keydown', event=>{
+    if (event.key === 'Escape' && inventoryToggle.getAttribute('aria-expanded') === 'true') {
+      setInventoryOpen(false);
+      inventoryToggle.focus();
+    }
+  });
+  mapShell.addEventListener('pointerdown',()=>setInventoryOpen(false));
+  const locationStatus = document.getElementById('fm-location-empty');
+  mapShell.classList.toggle('no-located-plots',!hasMapGeometry);
+  locationStatus.hidden = hasMapGeometry;
+  document.querySelector('.map-layer-controls').hidden = !hasMapGeometry;
   let selectedPlot = null;
   let center=[...home],zoom=16,homeZoom=16,interactive=false;
   let key='', tileFailure=false;
@@ -115,7 +140,7 @@
     nw: project(previewSpec.west, previewSpec.north),
     se: project(previewSpec.east, previewSpec.south)
   };
-  if (previewBounds) {
+  if (hasMapGeometry && previewBounds) {
     const image = new Image();
     image.onload = () => {
       preview = image;
@@ -232,7 +257,7 @@
     return ready;
   }
   function render(){
-    if (!view.clientWidth||!view.clientHeight)return;
+    if (!hasMapGeometry || !view.clientWidth || !view.clientHeight) return;
     const google = source === 'google';
     view.closest('.map-shell').classList.toggle('google-view',google);
     googleFrame.hidden = !google;
@@ -260,26 +285,22 @@
     const scale=[5,2,1].find(q=>q*power<=max)*power;
     const bar=document.getElementById('scale');bar.textContent=scale>=1000?scale/1000+' km':scale+' m';bar.style.width=scale*metreFactor/resolution()+'px';
   }
-  function selectPlot(plot,{reveal=false,scroll=false,save=true}={}) {
+  function selectPlot(plot,{reveal=false,save=true}={}) {
     selectedPlot = plot;
-    document.getElementById('fit-field').setAttribute('aria-pressed',String(!plot));
+    plotFilter.value = plot ? String(plot.id) : '';
     for (const entry of plots) {
-      for (const button of [entry.row,entry.label]) {
-        button.setAttribute('aria-pressed',String(entry === plot));
-      }
+      entry.label?.setAttribute('aria-pressed',String(entry === plot));
     }
     const visible = devices.filter(d => !plot || d.plot === plot);
     document.getElementById('device-heading').textContent = plot ? plot.name+' · 设备' : '地块设备';
     document.getElementById('device-count').textContent = visible.length+' 台';
     for (const device of devices) device.row.style.display = visible.includes(device) ? '' : 'none';
     emptyState.hidden = visible.length > 0;
-    if (scroll && plot) {
-      const box = plotList.getBoundingClientRect();
-      const row = plot.row.getBoundingClientRect();
-      if (row.top < box.top) plotList.scrollTop += row.top - box.top;
-      else if (row.bottom > box.bottom) plotList.scrollTop += row.bottom - box.bottom;
+    emptyState.textContent = plot ? '该地块暂无设备' : '该农场暂无设备';
+    if (!hasMapGeometry) {
+      locationStatus.textContent = plot ? plot.name+'尚未录入位置' : '当前农场尚未录入地块位置';
     }
-    if (plot && reveal) {
+    if (plot?.anchor && reveal) {
       const [x,y] = screenPoint(plot.anchor);
       if (x < 60 || x > view.clientWidth-60 || y < 65 || y > view.clientHeight-65) {
         center = [...plot.anchor];
@@ -295,38 +316,24 @@
     schedule();
   }
   function openDevice(d) {
-    selectPlot(d.plot,{scroll:true,reveal:true});
+    selectPlot(d.plot,{reveal:true});
     window.openFarmDevice(d.type,d.plot.name);
   }
-  const rowsPerColumn = plots.length/2;
   for (const plot of plots) {
     const state = plot.state === 'unplanted' ? '未耕种' : '已耕种';
-    const row = document.createElement('button');
-    row.type = 'button';
-    row.className = 'fm-plot-row';
-    row.dataset.plotId = plot.id;
-    const name = document.createElement('span');
-    const metadata = document.createElement('small');
-    name.textContent = plot.name;
-    metadata.textContent = [plot.zoneName,plot.crop || state].join(' · ');
-    row.append(name,metadata);
-    row.setAttribute('aria-label',[plot.name,plot.zoneName,state,plot.crop].filter(Boolean).join('，'));
-    row.addEventListener('click',()=>selectPlot(plot,{reveal:true}));
-    plot.row = row;
+    plotFilter.add(new Option(plot.name,String(plot.id)));
+    if (!hasMapGeometry) continue;
     const label = document.createElement('button');
     label.type = 'button';
     label.className = 'fm-plot-label';
     label.classList.toggle('is-fallow',plot.state === 'unplanted');
     label.dataset.plotId = plot.id;
-    label.title = row.getAttribute('aria-label');
+    label.title = [plot.name,plot.zoneName,state,plot.crop].filter(Boolean).join('，');
     label.setAttribute('aria-label',label.title);
-    label.addEventListener('click',()=>selectPlot(plot,{scroll:true}));
+    label.addEventListener('click',()=>selectPlot(plot));
     labelLayer.append(label);
     plot.label = label;
   }
-  // Both visual order and keyboard order follow a row across the two field columns.
-  for (let i=0;i<rowsPerColumn;i++) plotList.append(plots[i].row,plots[i+rowsPerColumn].row);
-  document.getElementById('plot-count').textContent = plots.length+' 块';
   for(const d of devices){
     const pin=document.createElement('button');pin.className='device-pin';pin.type='button';
     pin.setAttribute('aria-label','查看'+d.name+'，'+d.label+'，'+d.plot.name);
@@ -389,16 +396,18 @@
     ctx.resetTransform();
     const hit = plots.find(p=>p.hitArea && ctx.isPointInPath(p.hitArea,e.clientX-rect.left,e.clientY-rect.top));
     ctx.restore();
-    if (hit) selectPlot(hit,{scroll:true});
+    if (hit) selectPlot(hit);
   });
   view.addEventListener('lostpointercapture',()=>{drag=null;});
   view.addEventListener('keydown',e=>{const steps={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};if(steps[e.key]){e.preventDefault();interactive=true;center=center.map((v,i)=>v+steps[e.key][i]*60*resolution());constrain();schedule();}else if(e.key==='+'||e.key==='=')changeZoom(.5);else if(e.key==='-')changeZoom(-.5);});
   document.getElementById('zoom-in').onclick=()=>changeZoom(.5);
   document.getElementById('zoom-out').onclick=()=>changeZoom(-.5);
   document.getElementById('reset-view').onclick=reset;
-  document.getElementById('fit-field').onclick=()=>{selectPlot(null);reset();};
-  const nav=document.querySelector('.app-sidebar');
-  document.getElementById('toggle-nav').onclick=e=>e.currentTarget.setAttribute('aria-expanded',String(nav.classList.toggle('mobile-open')));
+  plotFilter.addEventListener('change',()=>{
+    const plot = plotsById.get(plotFilter.value) || null;
+    selectPlot(plot,{reveal:true});
+    if (!plot && hasMapGeometry) reset();
+  });
   document.getElementById('layer-settings').onclick=()=>{keyInput.value=key;keyInput.setCustomValidity('');config.showModal();};
   document.getElementById('close-config').onclick=()=>config.close();
   keyInput.addEventListener('input',()=>keyInput.setCustomValidity(''));
@@ -423,7 +432,11 @@
     e.preventDefault();const next=keyInput.value.trim();
     if(!/^[a-z\d]{32}$/i.test(next)){keyInput.setCustomValidity('请输入 32 位天地图浏览器端 Key');keyInput.reportValidity();return;}applyKey(next);
   };
-  new ResizeObserver(()=>{if(!interactive)zoomToFit();schedule();}).observe(view);
-  reset();
-  selectPlot(plotsById.get(Number(new URL(location.href).searchParams.get('plot'))) || null,{scroll:true,save:false});
+  if (hasMapGeometry) {
+    new ResizeObserver(()=>{if(!interactive)zoomToFit();schedule();}).observe(view);
+    reset();
+  }
+  const linkedPlotId = new URL(location.href).searchParams.get('plot');
+  const linkedPlot = plotsById.get(linkedPlotId) || null;
+  selectPlot(linkedPlot,{reveal:true,save:Boolean(linkedPlotId && !linkedPlot)});
 })();
