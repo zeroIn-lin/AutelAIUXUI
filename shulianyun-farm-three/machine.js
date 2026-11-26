@@ -33,4 +33,43 @@ function labelMarker() {
   button.title = active ? '' : '查看水肥一体机';
 }
 new MutationObserver(labelMarker).observe(document.querySelector('#scene'), {attributes:true,attributeFilter:['data-pipe-view']});
-labelMarker();
+labelMarker();const irrigationRail = document.createElement('section');
+irrigationRail.className = 'irrigation-report';
+irrigationRail.innerHTML = '<h2>水肥机灌溉数据</h2>';
+const irrigationFields = {};
+for (const [title, fields] of [
+  ['当前任务', [['status','运行状态'],['mode','任务模式'],['barrels','肥料桶'],['actual','本次注肥量']]],
+  ['累计灌溉数据', [['tasks','施肥任务'],['litres','累计注肥量'],['water','累计灌水量']]]
+]) {
+  const card = document.createElement('section');
+  const heading = document.createElement('h3');
+  heading.textContent = title;
+  card.append(heading);
+  for (const [key, label] of fields) {
+    const row = document.createElement('div');
+    const value = document.createElement('strong');
+    row.append(label, value);
+    card.append(row);
+    irrigationFields[key] = value;
+  }
+  irrigationRail.append(card);
+}
+document.querySelector('.insight-rail').append(irrigationRail);
+function showIrrigation(data) {
+  for (const key of ['status','mode','barrels']) irrigationFields[key].textContent = data[key];
+  for (const key of ['litres','actual']) irrigationFields[key].textContent = Number(data[key]).toLocaleString('zh-CN',{maximumFractionDigits:2})+' L';
+  irrigationFields.tasks.textContent = data.tasks+' 次';
+  irrigationFields.water.textContent = '暂无计量';
+  document.documentElement.dataset.fertilizing = String(data.running);
+}
+let savedTotals = {};
+try { savedTotals = JSON.parse(localStorage.getItem('farm-irrigation-summary-v1')) || {}; } catch {}
+showIrrigation({status:'待机',mode:'—',barrels:'—',actual:0,litres:0,tasks:0,running:false,...savedTotals});
+const machineScreen = viewer.querySelector('iframe');
+window.addEventListener('message', event => {
+  if (event.source === machineScreen.contentWindow && event.data?.type === 'machine-irrigation') showIrrigation(event.data);
+});
+function activateMonitor() {
+  if (document.querySelector('#scene').dataset.pipeView === 'true' && !machineScreen.hasAttribute('src')) machineScreen.src='./machine-demo/index.html';
+}
+new MutationObserver(activateMonitor).observe(document.querySelector('#scene'),{attributes:true,attributeFilter:['data-pipe-view']});

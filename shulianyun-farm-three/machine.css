@@ -11,4 +11,8 @@ dialog.machine-viewer{position:fixed;inset:0;width:100vw;height:100dvh;max-width
 @media(max-width:720px){.machine-layout{grid-template-columns:1fr;grid-template-rows:minmax(100px,1fr) auto}.cabinet{width:min(10vh,88px)}}
 @media(prefers-reduced-motion:reduce){.machine-viewer[open] .cabinet{animation:none}}
 #scene[data-pipe-view=true] .device-name-label:is(:hover,:focus-visible) span:nth-child(2){font-size:0}
-#scene[data-pipe-view=true] .device-name-label:is(:hover,:focus-visible) span:nth-child(2)::after{content:"进入水肥机";font-size:14px;color:#246a57}
+#scene[data-pipe-view=true] .device-name-label:is(:hover,:focus-visible) span:nth-child(2)::after{content:"进入水肥机";font-size:14px;color:#246a57}.irrigation-report{display:none;padding:22px;color:#314a40}
+.farm-workspace:has(#scene[data-pipe-view=true]) .insight-rail>:not(.irrigation-report){display:none!important}
+.farm-workspace:has(#scene[data-pipe-view=true]) .irrigation-report{display:block}
+.irrigation-report h2{font-size:20px;margin:0 0 24px}.irrigation-report section{background:white;border:1px solid #e1e9e3;border-radius:12px;padding:18px;margin:0 0 16px}.irrigation-report h3{font-size:16px;margin:0 0 12px}.irrigation-report section div{display:flex;justify-content:space-between;gap:12px;padding:9px 0;color:#63756b}.irrigation-report strong{font-variant-numeric:tabular-nums;color:#263f33}
+html:not([data-fertilizing=true]) .pipe-flow{visibility:hidden;animation:none!important}
