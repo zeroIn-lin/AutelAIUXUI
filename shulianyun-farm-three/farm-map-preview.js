@@ -1,0 +1,1 @@
+// Optional georeferenced imagery snapshot.

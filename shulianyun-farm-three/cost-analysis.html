@@ -100,6 +100,11 @@ input:focus,select:focus,textarea:focus{border-color:#62bb51}input:focus-visible
 #product-frame{border:0;border-radius:0;min-height:100vh}
 .system-menu details.finance-menu{display:block}
 .system-menu summary.finance-heading{cursor:pointer;list-style:none}
+.map-menu summary{list-style:none;cursor:pointer}
+.map-menu summary::-webkit-details-marker{display:none}
+.map-menu[open] .menu-chevron{transform:rotate(225deg)}
+.system-menu .map-menu a{display:flex;align-items:center;text-decoration:none;color:#606266}
+.system-menu .map-menu a:hover,.system-menu .map-menu a:focus-visible{background:#f0f9eb;color:#36823a}
 summary.finance-heading::-webkit-details-marker{display:none}
 .finance-menu[open] .menu-chevron{transform:rotate(225deg)}
 </style></head>
@@ -121,6 +126,10 @@ summary.finance-heading::-webkit-details-marker{display:none}
         <div class="system-layout">
           <aside class="system-sidebar" aria-label="系统侧边栏"><nav class="app-nav system-menu" aria-label="系统导航">
             <a class="system-menu-item" style="text-decoration:none" href="./index.html"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M7 15a6 6 0 0 1 10-6m-5 3 4-4"/><circle cx="12" cy="12" r="1"/></svg><span>数智农场</span></a>
+            <details class="map-menu">
+              <summary class="system-menu-item"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2.5 6 6-2.5 7 3 6-2.5v14l-6 2.5-7-3-6 2.5zM8.5 3.5v14m7-11v14"/></svg><span>地图</span><i class="menu-chevron"></i></summary>
+              <a class="system-subitem" href="./farm-map.html">农场</a>
+            </details>
             <div class="system-menu-item nav-static"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17h13a4 4 0 0 0 0-8 5 5 0 0 0-9-1 4 4 0 0 0-4 9Z"/><path d="M6 3v2M1 9h2M3 4l2 2"/></svg><span>气象</span><i class="menu-chevron"></i></div>
             <div class="system-menu-item nav-static"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7M7 7h8M7 11h5m2 9c0-5 2-7 7-7 0 5-2 7-7 7Zm0 0-3-3"/></svg><span>农资管理</span><i class="menu-chevron"></i></div>
             
