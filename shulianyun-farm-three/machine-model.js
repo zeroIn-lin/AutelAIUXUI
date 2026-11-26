@@ -5,7 +5,9 @@
     canvas.dataset.ready = 'false';
     if (!THREE || !THREE.WebGLRenderer) return null;
 
-    let renderer, observer, camera, scene;
+    let renderer, observer, camera, scene, displayGlass;
+    const displayWidth = .84;
+    const displayHeight = displayWidth * 9 / 16;
     let disposed = false;
     let lost = false;
     const resources = new Set();
@@ -105,6 +107,13 @@
         map: grille, transparent: true, roughness: .48, metalness: .16
       }));
       mesh(new THREE.PlaneGeometry(1.193, .546), grilleSurface, 0, 2.949, .544);
+
+      // Panel-mounted HMI. The flanking strips of perforated steel remain
+      // exposed around the graphite surround and inset display.
+      box(.923, .535, .033, .015, graphite, 0, 2.949, .553);
+      box(.878, .502, .013, .006, recess, 0, 2.949, .571);
+      displayGlass = mesh(new THREE.PlaneGeometry(displayWidth, displayHeight),
+        own(new THREE.MeshBasicMaterial({color: 0x15232b})), 0, 2.949, .5785);
 
       // Flush chrome cam lock and a mushroom emergency stop with a safety collar.
       box(.062, .235, .022, .019, silver, -.585, 1.371, .538);
@@ -231,6 +240,18 @@
         camera.updateProjectionMatrix();
         renderer.render(scene, camera);
         canvas.dataset.ready = 'true';
+        const projectCorner = (x, y) => {
+          const point = displayGlass.position.clone().set(x, y, 0);
+          displayGlass.localToWorld(point).project(camera);
+          return [(point.x + 1) * width / 2, (1 - point.y) * height / 2];
+        };
+        const right = displayWidth / 2;
+        const top = displayHeight / 2;
+        canvas.dispatchEvent(new CustomEvent('machine-screen-layout', {detail: {
+          tl: projectCorner(-right, top),
+          tr: projectCorner(right, top),
+          bl: projectCorner(-right, -top)
+        }}));
       } catch {
         dispose();
       }

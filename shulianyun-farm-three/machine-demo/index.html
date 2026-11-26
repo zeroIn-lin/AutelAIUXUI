@@ -2044,4 +2044,4 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&nativeViewOn&&!docu
 $('#device-viewer').addEventListener('mousemove',e=>{if(nativeViewOn&&e.clientY<12)showNativeTools();});$('#device-viewer').addEventListener('touchstart',e=>{if(nativeViewOn&&e.touches[0]?.clientY<20)showNativeTools();},{passive:true});
 $('#review-fault').addEventListener('click',()=>{if(activeJob())handle('interrupt-demo');else reviewMessage('请先启动一键任务，再检查故障中断流程');});
 window.FertUX={getState:()=>state,tick,tickJob,emergency,beginJob,locate,render,clearDevices,validateSetup,reset:()=>{clearDevices();state={...state,page:'overview',barrels:initial(),selected:[1,5],draft:{1:{target:600},5:{target:600}},flow:1800,mixMinutes:2,wash:true,washMinutes:5,locked:false,job:null,lastRealJob:null,history:[],modal:null,inline:null,purge:null,purgeHistory:[],manualHistory:[],manualSession:null,lockedScreen:false,manualTotal:0};render();}};
-</script><script src="account.js"></script><script src="debug.js"></script></body></html>
+</script><script src="account.js"></script><script src="debug.js"></script><script src="screen-mirror.js"></script></body></html>

@@ -26,6 +26,19 @@ dialog.machine-viewer{position:fixed;inset:0;width:100vw;height:100dvh;max-width
   transform: translate(-50%, -50%);
 }
 .machine-canvas[data-ready="true"] + .machine-preview { display: none; }
+.machine-glass {
+  position:absolute; left:0; top:0; width:1920px; height:1080px;
+  transform-origin:0 0; overflow:hidden; pointer-events:none;
+  background:#1b2424; border-radius:10px;
+}
+.machine-glass[hidden] { display:none; }
+.machine-glass iframe {
+  display:block; width:1920px; height:1080px; margin:0; border:0;
+  transform-origin:0 0; pointer-events:none;
+}
+.machine-canvas:not([data-ready="true"]) ~ .machine-glass {
+  box-shadow:0 0 0 45px #2d3333,0 0 0 53px #9da3a0;
+}
 .machine-viewer[open] .machine-product {
   animation: machine-arrive .75s cubic-bezier(.2,.7,.25,1) both;
   transform-origin: center 75%;
