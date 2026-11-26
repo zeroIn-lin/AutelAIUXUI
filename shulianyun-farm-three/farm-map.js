@@ -39,6 +39,72 @@
   let center=[...home],zoom=16,homeZoom=16,interactive=false;
   let key='', tileFailure=false;
   try { key=localStorage.getItem(storeKey)||''; } catch {}
+  const sourceSelect = document.getElementById('map-source-select');
+  const googleFrame = document.getElementById('google-viewport');
+  const settingsButton = document.getElementById('layer-settings');
+  let source = key ? 'tianditu' : 'google';
+  try {
+    const saved = localStorage.getItem('farm-map-layer');
+    if (saved === 'snapshot' || saved === 'google') source = saved;
+  } catch {}
+  sourceSelect.value = source;
+
+  const googleEmbed = 'https://www.google.com/maps/embed?pb=!1m10!1m8!1m3!1d6669.43933126326!2d85.569!3d44.5023!3m2!1i1024!2i768!4f13.1!5e1!3m2!1szh-CN!2sus!4v1795680039685!5m2!1szh-CN!2sus';
+  const googleSize = [1440,900];
+  function loadGoogleView() {
+    if (googleFrame.childElementCount) return;
+    function embed() {
+      const frame = document.createElement('iframe');
+      frame.src = googleEmbed; frame.title = 'Google 连片农田卫星图';
+      frame.referrerPolicy = 'strict-origin-when-cross-origin';
+      // This fixed camera keeps the farm annotations registered. The original link opens an interactive map.
+      frame.inert = true;
+      mountMedia(frame);
+      schedule();
+    }
+    function mountMedia(media) {
+      const link = document.createElement('a');
+      link.className = 'google-source-hotspot';
+      link.href = document.getElementById('google-original').href;
+      link.target = '_blank'; link.rel = 'noopener';
+      link.setAttribute('aria-label','在 Google 地图中打开卫星原图');
+      googleFrame.replaceChildren(media,link);
+    }
+    if (location.protocol !== 'file:') { embed(); return; }
+    const capture = new Image();
+    capture.alt = 'Google Maps 连片农田卫星截图';
+    capture.onerror = embed;
+    capture.src = '../Google地图-连片农田-嵌入参考.png';
+    mountMedia(capture);
+  }
+
+  function renderGoogle() {
+    loadGoogleView();
+    const scale = Math.min(view.clientWidth/googleSize[0],view.clientHeight/googleSize[1]);
+    const left = (view.clientWidth-googleSize[0]*scale)/2;
+    const top = (view.clientHeight-googleSize[1]*scale)/2;
+    googleFrame.style.transform = 'translate('+left+'px,'+top+'px) scale('+scale+')';
+    const ctx = canvasContext(overlay);
+    const res = circumference/(256*2**16);
+    const middle = project(85.569,44.5023);
+    function point(lon,lat) {
+      const w = project(lon,lat);
+      return [left+(720+(w[0]-middle[0])/res)*scale,top+(450+(w[1]-middle[1])/res)*scale];
+    }
+    // Approximate the visible farm lane edges in this demonstration view.
+    const corners = [[85.560052,44.505835],[85.569236,44.504840],[85.568743,44.499117],[85.559559,44.500341]];
+    ctx.beginPath();
+    corners.forEach(([lon,lat],i)=>{const [x,y]=point(lon,lat);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});
+    ctx.closePath(); ctx.fillStyle='rgba(154,210,129,.10)';ctx.fill();
+    ctx.strokeStyle='#d5ee92';ctx.lineWidth=2;ctx.stroke();
+    const positions = [[85.5622,44.50432],[85.5671,44.50365],[85.5620,44.50130],[85.5663,44.50075]];
+    devices.forEach((device,i)=>{const [x,y]=point(...positions[i]);device.pin.style.left=x+'px';device.pin.style.top=y+'px';});
+    sourceLabel.textContent=googleFrame.firstElementChild?.tagName === 'IMG' ? 'Google 卫星快照' : 'Google 卫星图';
+    const copyright='Google Maps · 图像 © 2026 Airbus、CNES / Airbus、Maxar Technologies';
+    credit.textContent=copyright;
+    credit.href=document.getElementById('google-original').href;
+    credit.hidden=false;
+  }
   let preview=null;
   const previewSpec=window.farmMapPreview;
   // The bounds correspond to the complete north-up Web Mercator export.
@@ -110,7 +176,7 @@
   function schedule(){if(!drawQueued){drawQueued=true;requestAnimationFrame(()=>{drawQueued=false;render();});}}
   function drawTiles(){
     const needed=new Set();
-    if(key&&!tileFailure){
+    if(source==='tianditu'&&key&&!tileFailure){
       const z=Math.max(1,Math.min(18,Math.round(zoom)));
       const tileSize=256*2**(zoom-z);
       const left=(center[0]+circumference/2)/resolution()-view.clientWidth/2;
@@ -145,6 +211,12 @@
   }
   function render(){
     if (!view.clientWidth||!view.clientHeight)return;
+    const google = source === 'google';
+    view.closest('.map-shell').classList.toggle('google-view',google);
+    googleFrame.hidden = !google;
+    document.getElementById('google-original').hidden = !google;
+    settingsButton.hidden = source !== 'tianditu';
+    if (google) { tiles.style.visibility='hidden'; renderGoogle(); return; }
     constrain();
     drawPreview(canvasContext(terrain));
     const live = drawTiles();
@@ -177,6 +249,7 @@
   }
   function reset(){interactive=false;zoomToFit();render();}
   function changeZoom(delta,x=view.clientWidth/2,y=view.clientHeight/2){
+    if(source==='google')return;
     interactive=true;const old=resolution();zoom=Math.max(homeZoom-1.25,Math.min(homeZoom+2.5,zoom+delta));
     center[0]+=(old-resolution())*(x-view.clientWidth/2);center[1]+=(old-resolution())*(y-view.clientHeight/2);constrain();schedule();
   }
@@ -196,12 +269,12 @@
       return min <= max ? Math.max(min, Math.min(max, value)) : (min + max) / 2;
     });
   }
-  view.addEventListener('wheel',e=>{e.preventDefault();const r=view.getBoundingClientRect();changeZoom(e.deltaY>0?-.25:.25,e.clientX-r.left,e.clientY-r.top);},{passive:false});
+  view.addEventListener('wheel',e=>{if(source==='google')return;e.preventDefault();const r=view.getBoundingClientRect();changeZoom(e.deltaY>0?-.25:.25,e.clientX-r.left,e.clientY-r.top);},{passive:false});
   let drag;
-  view.addEventListener('pointerdown',e=>{if(e.button!==0||e.target.closest('button'))return;view.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY,c:[...center]};});
+  view.addEventListener('pointerdown',e=>{if(source==='google'||e.button!==0||e.target.closest('button'))return;view.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY,c:[...center]};});
   view.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;interactive=true;center=[drag.c[0]-(e.clientX-drag.x)*resolution(),drag.c[1]-(e.clientY-drag.y)*resolution()];constrain();schedule();});
   view.addEventListener('lostpointercapture',()=>{drag=null;});
-  view.addEventListener('keydown',e=>{const steps={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};if(steps[e.key]){e.preventDefault();interactive=true;center=center.map((v,i)=>v+steps[e.key][i]*60*resolution());constrain();schedule();}else if(e.key==='+'||e.key==='=')changeZoom(.5);else if(e.key==='-')changeZoom(-.5);});
+  view.addEventListener('keydown',e=>{if(source==='google')return;const steps={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};if(steps[e.key]){e.preventDefault();interactive=true;center=center.map((v,i)=>v+steps[e.key][i]*60*resolution());constrain();schedule();}else if(e.key==='+'||e.key==='=')changeZoom(.5);else if(e.key==='-')changeZoom(-.5);});
   document.getElementById('zoom-in').onclick=()=>changeZoom(.5);
   document.getElementById('zoom-out').onclick=()=>changeZoom(-.5);
   document.getElementById('reset-view').onclick=reset;
@@ -211,11 +284,21 @@
   document.getElementById('layer-settings').onclick=()=>{keyInput.value=key;keyInput.setCustomValidity('');config.showModal();};
   document.getElementById('close-config').onclick=()=>config.close();
   keyInput.addEventListener('input',()=>keyInput.setCustomValidity(''));
+  function selectSource(next) {
+    source = next; sourceSelect.value = next;
+    try { localStorage.setItem('farm-map-layer',next); } catch {}
+    status.hidden=true; reset();
+  }
+  sourceSelect.addEventListener('change',()=>{
+    const next=sourceSelect.value;
+    if(next==='tianditu' && !key){sourceSelect.value=source;settingsButton.click();return;}
+    tileFailure=false;selectSource(next);
+  });
   function applyKey(next){
     key=next;tileFailure=false;status.hidden=true;
     for(const tile of activeTiles.values()){tile.onload=null;tile.onerror=null;tile.remove();}activeTiles.clear();
     try {if(key)localStorage.setItem(storeKey,key);else localStorage.removeItem(storeKey);} catch {}
-    config.close();render();
+    config.close();selectSource(next?'tianditu':'snapshot');
   }
   document.getElementById('schematic').onclick=()=>applyKey('');
   document.getElementById('config-form').onsubmit=e=>{

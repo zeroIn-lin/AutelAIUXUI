@@ -78,38 +78,13 @@
 
   let dialog;
   let opener;
-  function selectTab(tab) {
-    dialog.querySelectorAll('[role="tab"]').forEach(button => {
-      const selected = button === tab;
-      button.setAttribute('aria-selected', selected);
-      button.tabIndex = selected ? 0 : -1;
-      dialog.querySelector('#' + button.getAttribute('aria-controls')).hidden = !selected;
-    });
-  }
-
   function createDialog() {
     const element = document.createElement('dialog');
     element.className = 'farm-device-dialog';
     element.setAttribute('aria-labelledby', 'fd-name');
     document.body.append(element);
     element.addEventListener('click', event => {
-      const tab = event.target.closest('[role="tab"]');
-      if (tab) selectTab(tab);
       if (event.target.closest('.fd-close') || event.target === element) element.close();
-    });
-    element.addEventListener('keydown', event => {
-      const tab = event.target.closest('[role="tab"]');
-      if (!tab) return;
-      const tabs = [...element.querySelectorAll('[role="tab"]')];
-      let next;
-      if (event.key === 'Home') next = tabs[0];
-      if (event.key === 'End') next = tabs.at(-1);
-      if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') next = tabs.find(button => button !== tab);
-      if (next) {
-        event.preventDefault();
-        selectTab(next);
-        next.focus();
-      }
     });
     element.addEventListener('close', () => opener?.focus?.({preventScroll: true}));
     return element;
@@ -131,16 +106,10 @@
           <p class="fd-model">${device.model}</p><p class="fd-report">上报时间 <time datetime="2026-11-17T15:11:24+08:00">${lastReport}</time></p></div>
         <button type="button" class="fd-close" aria-label="关闭设备详情" autofocus>×</button>
       </header>
-      <div class="fd-tabs" role="tablist" aria-label="设备详情">
-        <button type="button" id="fd-run-tab" role="tab" aria-controls="fd-run" aria-selected="true">运行数据</button>
-        <button type="button" id="fd-info-tab" role="tab" aria-controls="fd-info" aria-selected="false" tabindex="-1">设备信息</button>
-      </div>
-      <div class="fd-content" id="fd-run" role="tabpanel" aria-labelledby="fd-run-tab" tabindex="0">
+      <div class="fd-content" role="region" aria-label="设备详情" tabindex="0">
+        <div class="fd-identity">${group('设备信息', identity)}</div>
         <div class="fd-groups">${device.sections.map(([name, fields]) => group(name, fields)).join('')}</div>
         ${barrelTable(device)}
-      </div>
-      <div class="fd-content fd-identity" id="fd-info" role="tabpanel" aria-labelledby="fd-info-tab" tabindex="0" hidden>
-        ${group('设备参数', identity)}
       </div>
     </div>`;
     if (!dialog.open) dialog.showModal();

@@ -1,7 +1,6 @@
 dialog.farm-device-dialog {
   --fd-ink: #233b32;
   --fd-muted: #53665e;
-  --fd-green: #25734f;
   --fd-line: #e2e9e3;
   display: none;
   width: min(744px,calc(100vw - 36px));
@@ -37,12 +36,11 @@ dialog.farm-device-dialog[open] { display: block; }
 .farm-device-dialog button { font-family: inherit; cursor: pointer; }
 .farm-device-dialog .fd-close { position: absolute; right: 16px; top: 16px; border: 1px solid #dde4dc; background: #fff; color: #52645a; border-radius: 50%; display: grid; place-content: center; width: 34px; height: 34px; padding: 0; font-size: 23px; font-weight: 400; line-height: 1; }
 .fd-close:hover { border-color: #a9c1af; }
-.fd-tabs { flex: none; display: flex; gap: 26px; border-top: 1px solid var(--fd-line); border-bottom: 1px solid var(--fd-line); padding: 0 24px; }
-.farm-device-dialog .fd-tabs button { appearance: none; background: transparent; color: var(--fd-muted); border: 0; border-radius: 0; border-bottom: 3px solid transparent; min-height: 46px; padding: 5px 2px 2px; font-size: 14px; font-weight: 550; }
-.farm-device-dialog .fd-tabs [aria-selected="true"] { color: var(--fd-green); border-bottom-color: #4b9b63; }
 .farm-device-dialog :focus-visible { outline: 2px solid #44855a; outline-offset: -2px; }
 .fd-content { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 20px 24px 24px; }
-.farm-device-dialog [hidden] { display: none!important; }
+.fd-identity { margin-bottom: 16px; }
+.fd-identity dl { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 26px; }
+.fd-identity dl div:nth-last-child(-n+2) { border: none; }
 .fd-groups { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; align-items: start; }
 .fd-group, .fd-barrels { border: 1px solid var(--fd-line); border-radius: 10px; overflow: hidden; }
 .farm-device-dialog .fd-content h3 { display: block; font-size: 15px; font-weight: 650; line-height: 1.5; margin: 0; padding: 10px 14px; background: #f4f7f3; color: #30493c; border-bottom: 1px solid var(--fd-line); }
@@ -75,6 +73,7 @@ dialog.farm-device-dialog[open] { display: block; }
   .farm-device-dialog .fd-close { right: 6px; top: 6px; }
   .fd-content { padding: 12px; }
   .fd-groups { grid-template-columns: minmax(0,1fr); gap: 10px; }
-  .fd-tabs { padding: 0 15px; }
+  .fd-identity { margin-bottom: 10px; }
+  .fd-identity dl { display: block; }
   .fd-barrels { margin-top: 10px; }
 }

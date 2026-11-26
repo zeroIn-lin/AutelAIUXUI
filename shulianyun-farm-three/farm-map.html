@@ -38,7 +38,7 @@
             <div class="system-menu-item nav-static"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="8" r="3"/><path d="M6 19v-1a6 6 0 0 1 12 0v1"/></svg><span>员工信息</span><i class="menu-chevron"></i></div>
           </nav></aside>
 <main id="farm-map-main">
-  <header class="page-bar"><div><span>地图</span><span class="slash">/</span><strong>农场</strong></div><button id="layer-settings" class="layer-button"><span aria-hidden="true">▱</span> 天地图影像</button></header>
+  <header class="page-bar"><div><span>地图</span><span class="slash">/</span><strong>农场</strong></div><div class="map-layer-controls"><a id="google-original" href="https://www.google.com/maps/@44.5023,85.569,16z/data=!3m1!1e3" target="_blank" rel="noopener">Google 原图 ↗</a><select id="map-source-select" aria-label="地图底图"><option value="google">Google 卫星图</option><option value="snapshot">离线卫星图</option><option value="tianditu">天地图影像</option></select><button id="layer-settings" class="layer-button" hidden>设置 Key</button></div></header>
   <div class="map-layout">
     <section class="inventory" aria-label="地块与设备"><div class="inventory-heading"><h1>地块列表</h1><span>1 块</span></div>
       <button class="field-summary" id="fit-field" title="定位到地块"><span class="field-symbol" aria-hidden="true">▱</span><span><b>144基地块</b><small>棉花 · 新陆早52号</small></span></button>
@@ -49,10 +49,10 @@
       <div id="map-view" tabindex="0" aria-label="农场地图，方向键平移，加减键缩放">
         <canvas id="map-drawing" aria-hidden="true"></canvas>
         <div id="tile-layer" aria-hidden="true"></div>
-        <canvas id="parcel-overlay" aria-hidden="true"></canvas>
+        <div id="google-viewport" hidden></div><canvas id="parcel-overlay" aria-hidden="true"></canvas>
         <div id="device-layer"></div>
       </div>
-      <div class="map-source"><span class="source-dot"></span><strong id="base-label">地块示意图</strong><span>示例点位</span></div>
+      <div class="map-source"><span class="source-dot"></span><strong id="base-label">加载底图</strong><span>示例地块与点位</span></div>
       <div class="compass" aria-label="正北向上"><b>N</b><i></i></div>
       <div class="map-tools"><button id="zoom-in" aria-label="放大地图" title="放大">＋</button><button id="zoom-out" aria-label="缩小地图" title="缩小">−</button><button id="reset-view" aria-label="定位地块" title="定位地块">◎</button></div>
       <div class="map-credit"><span id="scale"></span><a id="tdt-credit" href="https://www.tianditu.gov.cn/" target="_blank" rel="noopener" hidden>天地图 · 国家地理信息公共服务平台</a></div>
