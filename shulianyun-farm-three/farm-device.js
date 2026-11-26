@@ -90,7 +90,7 @@
     return element;
   }
 
-  window.openFarmDevice = function openFarmDevice(type) {
+  window.openFarmDevice = function openFarmDevice(type, plotName) {
     if (!Object.hasOwn(devices, type)) return;
     const device = devices[type];
     dialog ??= createDialog();
@@ -112,6 +112,16 @@
         ${barrelTable(device)}
       </div>
     </div>`;
+    if (typeof plotName === 'string' && plotName.trim()) {
+      const row = document.createElement('div');
+      row.className = 'fd-plot-row';
+      const label = document.createElement('dt');
+      label.textContent = '所属地块';
+      const value = document.createElement('dd');
+      value.textContent = plotName.trim();
+      row.append(label, value);
+      dialog.querySelector('.fd-identity dl').prepend(row);
+    }
     if (!dialog.open) dialog.showModal();
   };
 })();

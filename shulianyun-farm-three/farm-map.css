@@ -8,3 +8,174 @@
 .map-shell.google-view{background:#e7ece8}.google-view #map-view,.google-view #map-view:active{cursor:default}.google-view #map-drawing,.google-view .compass,.google-view .map-tools,.google-view #scale{display:none}.google-view .map-source{left:auto;right:12px}.google-view .map-credit{justify-content:flex-end;bottom:1px}.google-view .map-credit a{font-size:10px}.google-view #device-layer{z-index:2}.google-view #parcel-overlay{z-index:1}
 @media(max-width:650px){.map-layer-controls{gap:5px}.map-layer-controls select{font-size:12px}.google-view .device-pin img{width:33px;height:33px}.google-view .device-pin span{font-size:9px}.google-view .map-credit a{font-size:8px}}
 .google-source-hotspot{position:absolute;left:5px;top:5px;width:178px;height:39px;pointer-events:auto}.google-source-hotspot:focus-visible{outline:3px solid #337850;outline-offset:2px}
+
+/* The plot picker and its related devices scroll independently on larger screens. */
+.inventory {
+  width: clamp(232px,20vw,312px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+  min-height: 0;
+}
+.fm-inventory-head {
+  flex: none;
+  min-height: 58px;
+  margin: 0;
+  padding: 12px 14px;
+  gap: 8px;
+}
+.fm-inventory-head h1 { font-size: 17px; }
+#fit-field {
+  margin-left: auto;
+  padding: 4px 9px;
+  min-height: 30px;
+  border: 1px solid #d8e2d9;
+  border-radius: 6px;
+  color: #526456;
+  background: #fff;
+}
+#fit-field[aria-pressed="true"] { color: #2d744d; border-color: #a8caae; background: #f1f8ef; }
+.fm-plot-list {
+  flex: 1 1 auto;
+  min-height: 88px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #bbcbbb transparent;
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  align-content: start;
+  gap: 6px;
+  padding: 3px 12px 14px;
+}
+.fm-plot-row {
+  display: grid;
+  justify-items: start;
+  align-content: center;
+  min-height: 40px;
+  padding: 6px 10px;
+  gap: 2px;
+  color: #344c3c;
+  border: 1px solid #e2e8e0;
+  border-radius: 7px;
+  font: inherit;
+  line-height: 1.38;
+  text-align: left;
+  background: #fff;
+}
+.fm-plot-row > span { font-size: 14px; font-weight: 550; }
+.fm-plot-row > small { font-size: 11px; color: #65786a; }
+.fm-plot-row:hover { border-color: #9abb9e; background: #f5f9f4; }
+.fm-plot-row[aria-pressed="true"], .fm-plot-row.is-selected {
+  color: #235e3c;
+  border-color: #6ca778;
+  background: #eaf5e9;
+  box-shadow: inset 3px 0 #529568;
+}
+.fm-device-panel {
+  flex: 0 1 auto;
+  min-height: 75px;
+  max-height: 44%;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 0 14px 12px;
+  border-top: 1px solid #dce3dc;
+}
+.fm-device-panel .device-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin: 0;
+  padding: 13px 0 9px;
+  background: #fff;
+  border: 0;
+}
+.fm-device-panel .device-heading > h2 { font-size: 15px; }
+.fm-device-panel .device-row { min-height: 44px; padding: 6px 1px; }
+.fm-device-empty { margin: 0; padding: 10px 0; color: #66796d; font-size: 13px; }
+#plot-label-layer { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
+#device-layer,.google-view #device-layer { z-index: 3; }
+.device-pin { filter: drop-shadow(0 2px 2px #20302130); }
+.device-pin img { width: clamp(38px,3.3vw,54px); height: clamp(38px,3.3vw,54px); }
+.device-pin span { padding: 2px 5px; font-size: 11px; }
+.device-pin:hover,.device-pin:focus-visible { filter: drop-shadow(0 3px 3px #1a3b213d); }
+.map-shell.google-view #map-view { cursor: grab; }
+.map-shell.google-view #map-view:active { cursor: grabbing; }
+.map-shell.google-view .map-tools { display: grid; }
+.map-shell.google-view #scale { display: inline-block; }
+.map-shell.google-view .map-credit { justify-content: space-between; bottom: 8px; }
+.map-shell.compact-plots .device-pin { padding: 0; }
+.compact-plots .device-pin img { width: 32px; height: 32px; }
+.compact-plots .device-pin span {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  visibility: hidden;
+}
+.compact-plots .device-pin:hover span,
+.compact-plots .device-pin:focus-visible span { visibility: visible; }
+.compact-plots .device-pin::after { display: none; }
+.map-shell.sparse-plots .fm-plot-label { padding-inline: 3px; font-size: 10px; }
+.fm-plot-label {
+  position: absolute;
+  transform: translate(-50%,-50%);
+  pointer-events: auto;
+  background: rgb(248 252 247 / .90);
+  border: 1px solid rgb(44 90 55 / .45);
+  padding: 2px 5px;
+  border-radius: 4px;
+  color: #2b4a32;
+  font: 600 12px/1.35 "Microsoft YaHei",sans-serif;
+  white-space: nowrap;
+  box-shadow: 0 1px 3px #273d3326;
+}
+.fm-plot-label.is-fallow { color: #645034; border-color: #998767; background: #fffaefed; }
+.fm-plot-label.is-selected,.fm-plot-label[aria-pressed="true"] { background: #275b39; color: #fff; border-color: #edf9e8; }
+.fm-field-legend {
+  position: absolute;
+  z-index: 4;
+  bottom: 36px;
+  left: 14px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  background: #fffffff2;
+  border-radius: 6px;
+  padding: 5px 9px;
+  border: 1px solid #d8e1d4;
+  color: #3d5143;
+  font-size: 12px;
+  pointer-events: none;
+}
+.fm-field-legend span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.fm-field-legend i { width: 11px; height: 11px; border-radius: 2px; border: 1px solid; }
+.fm-field-legend .fm-swatch-planted { background: #68a86d80; border-color: #51875a; }
+.fm-field-legend .fm-swatch-fallow { background: #d0a25f80; border-color: #ad884f; }
+.map-source,.map-credit,.map-tools,.compass,#map-status { z-index: 4; }
+@media(max-width:1000px) and (min-width:761px) {
+  .inventory { width: 220px; padding: 0; }
+  .fm-plot-list { padding-inline: 9px; }
+}
+@media(max-width:760px) {
+  .map-body { height: auto; min-height: calc(100dvh - 52px); }
+  .map-layout { display: grid; grid-template-columns: minmax(0,1fr); height: auto; overflow: visible; }
+  .map-shell { grid-row: 1; height: clamp(320px,57dvh,550px); min-height: 0; overflow: hidden; border-radius: 12px 12px 0 0; }
+  .inventory { grid-row: 2; width: 100%; height: auto; max-height: none; padding: 0; border-radius: 0 0 12px 12px; }
+  .fm-inventory-head { margin: 0; padding: 9px 12px; min-height: 46px; }
+  .fm-plot-list { max-height: 189px; padding: 3px 12px 10px; }
+  .fm-device-panel { max-height: none; min-height: 0; overflow: visible; padding: 0 12px 12px; }
+  .fm-device-panel #device-list { grid-template-columns: 1fr; }
+  .fm-device-panel .device-heading { position: static; }
+  .fm-device-panel .device-row b { font-size: 14px; }
+  .fm-field-legend { bottom: 27px; left: 8px; font-size: 10px; padding: 4px 6px; gap: 8px; }
+  .fm-plot-label { font-size: 10px; padding: 1px 3px; }
+  .device-pin img,.google-view .device-pin img { width: 32px; height: 32px; }
+}
+@media(max-height:560px) and (min-width:761px) {
+  .inventory { overflow-y: auto; display: block; }
+  .fm-plot-list { max-height: 160px; }
+  .fm-device-panel { max-height: none; overflow: visible; }
+}
+

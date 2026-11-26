@@ -49,6 +49,8 @@ dialog.farm-device-dialog[open] { display: block; }
 .fd-group dl div:last-child { border-bottom: 0; }
 .fd-group dt { color: var(--fd-muted); }
 .fd-group dd { margin: 0; font-weight: 550; color: var(--fd-ink); white-space: nowrap; }
+.fd-plot-row dt { flex: none; }
+.fd-plot-row dd { white-space: normal; overflow-wrap: anywhere; text-align: right; }
 .fd-state { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; font-size: 13px; }
 .fd-state::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .fd-on { color: #277149; }

@@ -14,28 +14,41 @@
   const storeKey = 'farm-map-browser-key';
   const R = 6378137;
   const circumference = 2 * Math.PI * R;
-  const latitude = 44.50;
-  const longitude = 85.58;
+  const latitude = 44.5023;
   const metreFactor = 1 / Math.cos(latitude * Math.PI / 180);
-  const devices = [
-    {type:'jiangrun',label:'疆润水肥机',name:'龙岗葡萄园测试水肥机',online:true,point:[-220,-62]},
-    {type:'venturi',label:'文丘里施肥机',name:'河南xxx水肥机',online:true,point:[113,-109]},
-    {type:'injection',label:'注入式施肥机',name:'新疆xxx水肥机',online:false,point:[-118,152]},
-    {type:'valve',label:'阀控器',name:'5-2',online:true,point:[225,106]}
-  ];
-  const outline = [[-350,-105],[-305,-111],[205,-260],[259,-259],[365,-56],[367,-34],[225,254],[-380,240]];
-  const rawArea = Math.abs(outline.reduce((sum, [x,y], i) => {
-    const [nx,ny]=outline[(i+1)%outline.length];
-    return sum+x*ny-nx*y;
-  },0))/2;
-  const scaleMetres = Math.sqrt(500.77 * (2000/3) / rawArea);
   function project(lon,lat) {
     return [R * lon * Math.PI / 180, -R * Math.log(Math.tan(Math.PI/4+lat*Math.PI/360))];
   }
-  const home = project(longitude, latitude);
-  function localToWorld(x,y) {
-    return [home[0]+x*scaleMetres*metreFactor,home[1]+y*scaleMetres*metreFactor];
-  }
+  // Demonstration footprint within the common imagery extent, bounded by two farm roads.
+  const footprint = [[85.56334,44.50547],[85.57779,44.50420],
+                     [85.57719,44.49797],[85.56291,44.49997]].map(pair => project(...pair));
+  const layout = window.FarmMapPlots;
+  const home = layout.project([0.5,0.5],footprint);
+  const context = window.FarmSceneContext.read();
+  const sourcePlots = new Map(context.plots.map(plot => [plot.id,plot]));
+  const plots = layout.plots.map(shape => {
+    const plot = {...shape,...sourcePlots.get(shape.id)};
+    const zone = context.zones.find(zone => zone.plotIds.includes(plot.id));
+    return {...plot,zoneName:zone?.name || shape.zoneName,
+      boundary:shape.polygon.map(point => layout.project(point,footprint)),
+      anchor:layout.project(shape.center,footprint)};
+  });
+  const plotsById = new Map(plots.map(plot => [plot.id,plot]));
+  const devices = [
+    {type:'jiangrun',label:'疆润水肥机',name:'龙岗葡萄园测试水肥机',online:true},
+    {type:'venturi',label:'文丘里施肥机',name:'河南xxx水肥机',online:true},
+    {type:'injection',label:'注入式施肥机',name:'新疆xxx水肥机',online:false},
+    {type:'valve',label:'阀控器',name:'5-2',online:true}
+  ].map(device => {
+    const {plotId,point} = layout.devices.find(item => item.type === device.type);
+    return {...device,plot:plotsById.get(plotId),anchor:layout.project(point,footprint)};
+  });
+  document.getElementById('map-farm-name').textContent = context.farmName;
+  document.getElementById('map-season-name').textContent = context.seasonName;
+  const mapShell = view.closest('.map-shell');
+  const labelLayer = document.getElementById('plot-label-layer');
+  const plotList = document.getElementById('plot-list');
+  let selectedPlot = null;
   let center=[...home],zoom=16,homeZoom=16,interactive=false;
   let key='', tileFailure=false;
   try { key=localStorage.getItem(storeKey)||''; } catch {}
@@ -80,25 +93,9 @@
 
   function renderGoogle() {
     loadGoogleView();
-    const scale = Math.min(view.clientWidth/googleSize[0],view.clientHeight/googleSize[1]);
-    const left = (view.clientWidth-googleSize[0]*scale)/2;
-    const top = (view.clientHeight-googleSize[1]*scale)/2;
+    const scale = googleResolution / resolution();
+    const [left,top] = screenPoint(googleBounds.nw);
     googleFrame.style.transform = 'translate('+left+'px,'+top+'px) scale('+scale+')';
-    const ctx = canvasContext(overlay);
-    const res = circumference/(256*2**16);
-    const middle = project(85.569,44.5023);
-    function point(lon,lat) {
-      const w = project(lon,lat);
-      return [left+(720+(w[0]-middle[0])/res)*scale,top+(450+(w[1]-middle[1])/res)*scale];
-    }
-    // Approximate the visible farm lane edges in this demonstration view.
-    const corners = [[85.560052,44.505835],[85.569236,44.504840],[85.568743,44.499117],[85.559559,44.500341]];
-    ctx.beginPath();
-    corners.forEach(([lon,lat],i)=>{const [x,y]=point(lon,lat);if(i)ctx.lineTo(x,y);else ctx.moveTo(x,y);});
-    ctx.closePath(); ctx.fillStyle='rgba(154,210,129,.10)';ctx.fill();
-    ctx.strokeStyle='#d5ee92';ctx.lineWidth=2;ctx.stroke();
-    const positions = [[85.5622,44.50432],[85.5671,44.50365],[85.5620,44.50130],[85.5663,44.50075]];
-    devices.forEach((device,i)=>{const [x,y]=point(...positions[i]);device.pin.style.left=x+'px';device.pin.style.top=y+'px';});
     sourceLabel.textContent=googleFrame.firstElementChild?.tagName === 'IMG' ? 'Google 卫星快照' : 'Google 卫星图';
     const copyright='Google Maps · 图像 © 2026 Airbus、CNES / Airbus、Maxar Technologies';
     credit.textContent=copyright;
@@ -106,6 +103,12 @@
     credit.hidden=false;
   }
   let preview=null;
+  const googleResolution = circumference/(256*2**16);
+  const googleMiddle = project(85.569,latitude);
+  const googleBounds = {
+    nw:googleMiddle.map((v,i)=>v-googleSize[i]*googleResolution/2),
+    se:googleMiddle.map((v,i)=>v+googleSize[i]*googleResolution/2)
+  };
   const previewSpec=window.farmMapPreview;
   // The bounds correspond to the complete north-up Web Mercator export.
   const previewBounds = previewSpec && {
@@ -125,10 +128,14 @@
   function screenPoint([x,y]) {
     return [(x-center[0])/resolution()+view.clientWidth/2,(y-center[1])/resolution()+view.clientHeight/2];
   }
-  function screenLocal(point){return screenPoint(localToWorld(...point));}
   function zoomToFit(){
-    const width=Math.max(200,view.clientWidth-76),height=Math.max(120,view.clientHeight-130);
-    const res=Math.max(760*scaleMetres*metreFactor/width,540*scaleMetres*metreFactor/height);
+    const width=Math.max(160,view.clientWidth - Math.min(120,view.clientWidth*.12));
+    const height=Math.max(120,view.clientHeight-150);
+    const span = [0,1].map(axis => {
+      const values = footprint.map(point=>point[axis]);
+      return Math.max(...values)-Math.min(...values);
+    });
+    const res=Math.max(span[0]/width,span[1]/height);
     homeZoom=Math.max(11,Math.min(19,Math.log2(circumference/(256*res))));
     center=[...home]; zoom=homeZoom;
   }
@@ -150,26 +157,41 @@
     const [right, bottom] = screenPoint(previewBounds.se);
     ctx.drawImage(preview, left, top, right-left, bottom-top);
   }
-  const landBands=['#668659','#adac50','#8e9876','#7fa24e','#a39452','#91a65b'];
-  function drawParcel(ctx,imagery) {
-    ctx.save();
-    const origin=screenLocal([0,0]),px=scaleMetres*metreFactor/resolution();
-    ctx.translate(...origin);ctx.scale(px,px);
-    ctx.beginPath();outline.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();
-    ctx.save();ctx.clip();
-    for(let row=0;row<4;row++)for(let col=0;col<3;col++){
-      const x=-384+col*258,y=-269+row*139;
-      ctx.fillStyle=landBands[(row*2+col)%landBands.length];
-      ctx.globalAlpha=imagery?.23:.70;ctx.fillRect(x,y,260,140);
-      ctx.globalAlpha=imagery?.38:.70;ctx.strokeStyle='#ebeed0';ctx.lineWidth=1/px;ctx.strokeRect(x,y,258,139);
-      if(!imagery){ctx.globalAlpha=.12;ctx.strokeStyle='#49624c';for(let r=6;r<139;r+=5){ctx.beginPath();ctx.moveTo(x,y+r);ctx.lineTo(x+258,y+r);ctx.stroke();}}
+  function drawPlots() {
+    const ctx = canvasContext(overlay);
+    const rowHeight = Math.abs(plots[1].anchor[1]-plots[0].anchor[1]) / resolution();
+    const compact = rowHeight < 29 || view.clientWidth < 570;
+    const labelStep = Math.max(1,Math.ceil((compact ? 16 : 25)/rowHeight));
+    mapShell.classList.toggle('compact-plots',compact);
+    mapShell.classList.toggle('sparse-plots',labelStep > 1);
+    for (const plot of plots) {
+      const points = plot.boundary.map(screenPoint);
+      const path = new Path2D();
+      path.moveTo(...points[0]);
+      for (const point of points.slice(1)) path.lineTo(...point);
+      path.closePath();
+      plot.hitArea = path;
+      const active = selectedPlot === plot;
+      const fallow = plot.state === 'unplanted';
+      ctx.fillStyle = fallow ? 'rgba(230,174,91,.52)' : active ? 'rgba(135,229,131,.53)' : 'rgba(123,192,124,.24)';
+      ctx.strokeStyle = active ? '#fffbc4' : fallow ? '#f0c680' : '#badcaa';
+      ctx.lineWidth = active ? 2.8 : 1;
+      ctx.fill(path);
+      ctx.stroke(path);
+      const [x,y] = screenPoint(plot.anchor);
+      plot.label.style.left = x+'px';
+      plot.label.style.top = y+'px';
+      plot.label.hidden = (!active && (plot.id-1)%12%labelStep !== 0) ||
+        x<0 || x>view.clientWidth || y<0 || y>view.clientHeight;
+      const text = compact && !active ? String(plot.id).padStart(2,'0') : plot.name;
+      if (plot.label.textContent !== text) plot.label.textContent = text;
     }
-    ctx.restore();
-    ctx.beginPath();outline.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();
-    ctx.lineWidth=4/px;ctx.strokeStyle='#2748329c';ctx.stroke();ctx.lineWidth=2/px;ctx.strokeStyle='#e8f4b1';ctx.stroke();
-    ctx.restore();
-    const [cx,cy]=screenLocal([0,8]);
-    ctx.font='600 13px "Microsoft YaHei",sans-serif';ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#fffff5';ctx.strokeText('144基地块',cx,cy);ctx.fillStyle='#2c4f39';ctx.fillText('144基地块',cx,cy);
+    for (const device of devices) {
+      const [x,y] = screenPoint(device.anchor);
+      device.pin.style.left = x+'px';
+      device.pin.style.top = y+'px';
+      device.pin.hidden = !!selectedPlot && selectedPlot !== device.plot;
+    }
   }
   const activeTiles=new Map();
   let drawQueued=false;
@@ -216,46 +238,121 @@
     googleFrame.hidden = !google;
     document.getElementById('google-original').hidden = !google;
     settingsButton.hidden = source !== 'tianditu';
-    if (google) { tiles.style.visibility='hidden'; renderGoogle(); return; }
     constrain();
-    drawPreview(canvasContext(terrain));
-    const live = drawTiles();
-    sourceLabel.textContent = live ? '天地图影像' : preview ? previewSpec.label || '卫星影像快照' : '地块示意图';
-    credit.hidden = !live && !(preview && previewSpec.credit);
-    if (!credit.hidden) {
-      credit.textContent = live ? '天地图 · 国家地理信息公共服务平台' : previewSpec.credit;
-      const url = live ? 'https://www.tianditu.gov.cn/' : previewSpec.creditUrl;
-      if (url) credit.href = url;
-      else credit.removeAttribute('href');
+    if (google) {
+      drawTiles();
+      renderGoogle();
+    } else {
+      drawPreview(canvasContext(terrain));
+      const live = drawTiles();
+      sourceLabel.textContent = live ? '天地图影像' : preview ? previewSpec.label || '卫星影像快照' : '地块示意图';
+      credit.hidden = !live && !(preview && previewSpec.credit);
+      if (!credit.hidden) {
+        credit.textContent = live ? '天地图 · 国家地理信息公共服务平台' : previewSpec.credit;
+        const url = live ? 'https://www.tianditu.gov.cn/' : previewSpec.creditUrl;
+        if (url) credit.href = url;
+        else credit.removeAttribute('href');
+      }
     }
-    drawParcel(canvasContext(overlay),live||!!preview);
-    devices.forEach(d=>{const [x,y]=screenLocal(d.point);d.pin.style.left=x+'px';d.pin.style.top=y+'px';});
+    drawPlots();
     const max=Math.max(1,90*resolution()/metreFactor);
     const power=10**Math.floor(Math.log10(max));
     const scale=[5,2,1].find(q=>q*power<=max)*power;
     const bar=document.getElementById('scale');bar.textContent=scale>=1000?scale/1000+' km':scale+' m';bar.style.width=scale*metreFactor/resolution()+'px';
   }
-  function openDevice(d){window.openFarmDevice(d.type);}
+  function selectPlot(plot,{reveal=false,scroll=false,save=true}={}) {
+    selectedPlot = plot;
+    document.getElementById('fit-field').setAttribute('aria-pressed',String(!plot));
+    for (const entry of plots) {
+      for (const button of [entry.row,entry.label]) {
+        button.setAttribute('aria-pressed',String(entry === plot));
+      }
+    }
+    const visible = devices.filter(d => !plot || d.plot === plot);
+    document.getElementById('device-heading').textContent = plot ? plot.name+' · 设备' : '地块设备';
+    document.getElementById('device-count').textContent = visible.length+' 台';
+    for (const device of devices) device.row.style.display = visible.includes(device) ? '' : 'none';
+    emptyState.hidden = visible.length > 0;
+    if (scroll && plot) {
+      const box = plotList.getBoundingClientRect();
+      const row = plot.row.getBoundingClientRect();
+      if (row.top < box.top) plotList.scrollTop += row.top - box.top;
+      else if (row.bottom > box.bottom) plotList.scrollTop += row.bottom - box.bottom;
+    }
+    if (plot && reveal) {
+      const [x,y] = screenPoint(plot.anchor);
+      if (x < 60 || x > view.clientWidth-60 || y < 65 || y > view.clientHeight-65) {
+        center = [...plot.anchor];
+        interactive = true;
+      }
+    }
+    if (save) {
+      const url = new URL(location.href);
+      if (plot) url.searchParams.set('plot',plot.id);
+      else url.searchParams.delete('plot');
+      try {history.replaceState(history.state,'',url.href);} catch {}
+    }
+    schedule();
+  }
+  function openDevice(d) {
+    selectPlot(d.plot,{scroll:true,reveal:true});
+    window.openFarmDevice(d.type,d.plot.name);
+  }
+  const rowsPerColumn = plots.length/2;
+  for (const plot of plots) {
+    const state = plot.state === 'unplanted' ? '未耕种' : '已耕种';
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'fm-plot-row';
+    row.dataset.plotId = plot.id;
+    const name = document.createElement('span');
+    const metadata = document.createElement('small');
+    name.textContent = plot.name;
+    metadata.textContent = [plot.zoneName,plot.crop || state].join(' · ');
+    row.append(name,metadata);
+    row.setAttribute('aria-label',[plot.name,plot.zoneName,state,plot.crop].filter(Boolean).join('，'));
+    row.addEventListener('click',()=>selectPlot(plot,{reveal:true}));
+    plot.row = row;
+    const label = document.createElement('button');
+    label.type = 'button';
+    label.className = 'fm-plot-label';
+    label.classList.toggle('is-fallow',plot.state === 'unplanted');
+    label.dataset.plotId = plot.id;
+    label.title = row.getAttribute('aria-label');
+    label.setAttribute('aria-label',label.title);
+    label.addEventListener('click',()=>selectPlot(plot,{scroll:true}));
+    labelLayer.append(label);
+    plot.label = label;
+  }
+  // Both visual order and keyboard order follow a row across the two field columns.
+  for (let i=0;i<rowsPerColumn;i++) plotList.append(plots[i].row,plots[i+rowsPerColumn].row);
+  document.getElementById('plot-count').textContent = plots.length+' 块';
   for(const d of devices){
     const pin=document.createElement('button');pin.className='device-pin';pin.type='button';
-    pin.setAttribute('aria-label','查看'+d.name+'，'+d.label);
+    pin.setAttribute('aria-label','查看'+d.name+'，'+d.label+'，'+d.plot.name);
+    pin.dataset.plotId=d.plot.id;
     const icon=new Image();icon.src='device-icons/'+d.type+'.png';icon.alt='';icon.draggable=false;
     const label=document.createElement('span');label.textContent=d.label;pin.append(icon,label);
     pin.addEventListener('click',()=>openDevice(d));markers.append(pin);d.pin=pin;
     const row=document.createElement('button');row.type='button';row.className='device-row';
     const info=document.createElement('span'),name=document.createElement('b'),state=document.createElement('small'),action=document.createElement('em');
-    name.textContent=d.label;state.textContent=d.online?'在线':'离线';action.textContent='查看';
-    info.append(name,state);row.append(icon.cloneNode(),info,action);row.setAttribute('aria-label','查看'+d.name);row.addEventListener('click',()=>openDevice(d));inventory.append(row);
+    name.textContent=d.label;state.textContent=d.plot.name+' · '+(d.online?'在线':'离线');action.textContent='查看';
+    info.append(name,state);row.append(icon.cloneNode(),info,action);row.setAttribute('aria-label','查看'+d.name+'，'+d.plot.name);row.addEventListener('click',()=>openDevice(d));inventory.append(row);
+    d.row=row;
   }
+  const emptyState = document.createElement('p');
+  emptyState.className = 'fm-device-empty';
+  emptyState.textContent = '该地块暂无设备';
+  inventory.append(emptyState);
   function reset(){interactive=false;zoomToFit();render();}
   function changeZoom(delta,x=view.clientWidth/2,y=view.clientHeight/2){
-    if(source==='google')return;
     interactive=true;const old=resolution();zoom=Math.max(homeZoom-1.25,Math.min(homeZoom+2.5,zoom+delta));
     center[0]+=(old-resolution())*(x-view.clientWidth/2);center[1]+=(old-resolution())*(y-view.clientHeight/2);constrain();schedule();
   }
   function constrain() {
     const range = 1500 * metreFactor;
-    if (!preview || (key && !tileFailure)) {
+    const bounds = source === 'google' ? googleBounds : previewBounds;
+    if (!bounds || (source === 'tianditu' && key && !tileFailure)) {
       center = center.map((value,i) => Math.max(home[i]-range, Math.min(home[i]+range, value)));
       return;
     }
@@ -264,21 +361,42 @@
     const size = [view.clientWidth, view.clientHeight];
     center = center.map((value, i) => {
       const halfViewport = size[i] * resolution() / 2;
-      const min = previewBounds.nw[i] + halfViewport;
-      const max = previewBounds.se[i] - halfViewport;
+      const min = bounds.nw[i] + halfViewport;
+      const max = bounds.se[i] - halfViewport;
       return min <= max ? Math.max(min, Math.min(max, value)) : (min + max) / 2;
     });
   }
-  view.addEventListener('wheel',e=>{if(source==='google')return;e.preventDefault();const r=view.getBoundingClientRect();changeZoom(e.deltaY>0?-.25:.25,e.clientX-r.left,e.clientY-r.top);},{passive:false});
+  view.addEventListener('wheel',e=>{e.preventDefault();const r=view.getBoundingClientRect();changeZoom(e.deltaY>0?-.25:.25,e.clientX-r.left,e.clientY-r.top);},{passive:false});
   let drag;
-  view.addEventListener('pointerdown',e=>{if(source==='google'||e.button!==0||e.target.closest('button'))return;view.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY,c:[...center]};});
-  view.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;interactive=true;center=[drag.c[0]-(e.clientX-drag.x)*resolution(),drag.c[1]-(e.clientY-drag.y)*resolution()];constrain();schedule();});
+  view.addEventListener('pointerdown',e=>{
+    if (!e.isPrimary || e.button!==0 || e.target.closest('button,a')) return;
+    view.setPointerCapture(e.pointerId);
+    drag={id:e.pointerId,x:e.clientX,y:e.clientY,c:[...center],moved:false};
+  });
+  view.addEventListener('pointermove',e=>{
+    if (!drag || drag.id!==e.pointerId) return;
+    const dx=e.clientX-drag.x,dy=e.clientY-drag.y;
+    if (!drag.moved && Math.hypot(dx,dy)<5) return;
+    drag.moved=true;interactive=true;
+    center=[drag.c[0]-dx*resolution(),drag.c[1]-dy*resolution()];
+    constrain();schedule();
+  });
+  view.addEventListener('pointerup',e=>{
+    if (!drag || drag.id !== e.pointerId || drag.moved) return;
+    const rect = view.getBoundingClientRect();
+    const ctx = overlay.getContext('2d');
+    ctx.save();
+    ctx.resetTransform();
+    const hit = plots.find(p=>p.hitArea && ctx.isPointInPath(p.hitArea,e.clientX-rect.left,e.clientY-rect.top));
+    ctx.restore();
+    if (hit) selectPlot(hit,{scroll:true});
+  });
   view.addEventListener('lostpointercapture',()=>{drag=null;});
-  view.addEventListener('keydown',e=>{if(source==='google')return;const steps={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};if(steps[e.key]){e.preventDefault();interactive=true;center=center.map((v,i)=>v+steps[e.key][i]*60*resolution());constrain();schedule();}else if(e.key==='+'||e.key==='=')changeZoom(.5);else if(e.key==='-')changeZoom(-.5);});
+  view.addEventListener('keydown',e=>{const steps={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]};if(steps[e.key]){e.preventDefault();interactive=true;center=center.map((v,i)=>v+steps[e.key][i]*60*resolution());constrain();schedule();}else if(e.key==='+'||e.key==='=')changeZoom(.5);else if(e.key==='-')changeZoom(-.5);});
   document.getElementById('zoom-in').onclick=()=>changeZoom(.5);
   document.getElementById('zoom-out').onclick=()=>changeZoom(-.5);
   document.getElementById('reset-view').onclick=reset;
-  document.getElementById('fit-field').onclick=reset;
+  document.getElementById('fit-field').onclick=()=>{selectPlot(null);reset();};
   const nav=document.querySelector('.app-sidebar');
   document.getElementById('toggle-nav').onclick=e=>e.currentTarget.setAttribute('aria-expanded',String(nav.classList.toggle('mobile-open')));
   document.getElementById('layer-settings').onclick=()=>{keyInput.value=key;keyInput.setCustomValidity('');config.showModal();};
@@ -307,4 +425,5 @@
   };
   new ResizeObserver(()=>{if(!interactive)zoomToFit();schedule();}).observe(view);
   reset();
+  selectPlot(plotsById.get(Number(new URL(location.href).searchParams.get('plot'))) || null,{scroll:true,save:false});
 })();
