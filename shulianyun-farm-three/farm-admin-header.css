@@ -35,6 +35,29 @@
 .admin-avatar {display:grid;place-items:center;width:32px;height:32px;overflow:hidden;border-radius:50%;background:#fff;border:1px solid #ededed}
 .admin-avatar svg {width:27px;height:27px;fill:#c9c9c9}
 .admin-nav-toggle {display:none}
+.admin-page-bar {
+  display:flex; flex:none; align-items:center; justify-content:space-between;
+  min-height:52px; gap:12px;
+}
+.admin-breadcrumb {
+  display:flex; align-items:center; gap:10px; white-space:nowrap;
+  color:#606862; font:400 14px/20px "Microsoft YaHei","Segoe UI",sans-serif;
+}
+.admin-breadcrumb [aria-hidden] {color:#929a94}
+.admin-breadcrumb [aria-current="page"] {color:#303b34;font-weight:600}
+@media screen {
+  :root {--admin-sidebar-width:clamp(145px,12vw,208px);--admin-gutter:16px}
+  .farm-map-page #admin-sidebar {flex-basis:var(--admin-sidebar-width)}
+  .farm-map-page #farm-map-main {padding-inline:var(--admin-gutter)}
+  .system-workspace > .admin-page-bar,.system-workspace > .app-content {padding-inline:var(--admin-gutter)}
+  .system-workspace > .app-content {padding-top:0}
+}
+@media screen and (min-width:761px) {
+  #product-frame .system-layout {grid-template-columns:var(--admin-sidebar-width) minmax(0,1fr)}
+}
+@media screen and (max-width:1000px) {
+  :root {--admin-sidebar-width:134px;--admin-gutter:12px}
+}
 .farm-map-page .map-body {height:calc(100dvh - 60px)}
 @media(max-width:1000px) and (min-width:761px) {
   .farm-admin-header {gap:15px;padding:0 12px}
@@ -42,6 +65,7 @@
   .admin-picker {width:148px}.admin-messages {display:none}
 }
 @media(max-width:760px) {
+  .admin-page-bar {min-height:44px;gap:8px}
   .farm-admin-header {
     --admin-height:102px;
     display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:34px 45px;
